@@ -30,7 +30,8 @@ class DiscordBot:
                 "et": inital_last_time_str,
                 "dt": inital_last_time_str,
                 "mm": inital_last_time_str,
-                "sre": inital_last_time_str
+                "sre_qt": inital_last_time_str,
+                "sre_pa": inital_last_time_str
             }
             try:
                 with open(self.last_time_save_file, "w") as file:
@@ -80,14 +81,15 @@ class DiscordBot:
                     parsed_message = self.parse_dt_messages(message['content'], message['timestamp'])
                 elif channel == "mm" :
                     parsed_message = self.parse_mm_messages(message['content'], message['timestamp'])
-                elif (channel == "sre" or channel == "sre_qa" or channel == "sre_pa") :
+                elif (channel == "sre" or channel == "sre_qt" or channel == "sre_pa") :
                     parsed_message = self.parse_sre_messages(message['content'], message['timestamp'])
                 else :
                     continue
                 if parsed_message==None :
                     continue
                 trades.append(parsed_message)
-                return trades
+                break
+            return trades
         else :
             print("No connect")
             return None

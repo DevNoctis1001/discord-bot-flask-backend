@@ -61,6 +61,7 @@ class RobinhoodClient :
             return None
    
     def sell_all(self) : 
+        print(self.account_number, "  account_number" )
         if self.account_number==None :return
         positions = rh.options.get_open_option_positions(str(self.account_number))
         if len(positions)==0 : return
@@ -107,23 +108,10 @@ class RobinhoodClient :
                 timeInForce='gtc',
                 account_number=str(self.account_number)
             )
-            print(order)
-            if 'id' in order :
-                return order['id']
-            elif 'detail' in order and order['detail']=="Price does not satisfy the min tick value.":
-                return "invalid_parameter"
-            elif 'detail' in order and order['detail']=="You do not have enough overnight buying power to place this order.":
-                return "not_enough"
-            else :
-                return "Warning"
+            return order
             
         except Exception as e:  
-            if 'Pattern' in str(e):  
-                print("PDT warning, pausing buy signals.")  
-                return "PDT"
-            else:  
-                print(f"An error occurred: {e}")  
-                return "Warning"  
+            return str(e)
     
     def cancel_order(self, order_id):
         try:

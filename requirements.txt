@@ -1,0 +1,11 @@
+Flask
+Flask-cors
+
+requests
+pyotp
+numpy
+pytz
+robin_stocks
+telepot
+python-dotenv
+json

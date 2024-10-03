@@ -10,11 +10,6 @@ config = ConfigParser()
 file_path ="config.ini"
 config.read(file_path)
 
-load_dotenv()
-
-username = os.getenv('ROBINHOOD_USERNAME')
-password = os.getenv('ROBINHOOD_PASSWORD')
-
 with open('settings/setting.json', 'r') as json_file:
     saved_datas = json.load(json_file)
 class RobinhoodClient :

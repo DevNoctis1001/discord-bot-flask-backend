@@ -289,7 +289,6 @@ def sell_all():
 def get_settings():
     with open("settings/setting.json", "r") as file:
         datas= json.load(file)
-    print(datas)
     return datas
 # Run the server
 if __name__ == "__main__":

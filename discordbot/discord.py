@@ -45,7 +45,7 @@ class DiscordBot:
            'Authorization' : f"{token}",
            'Content-Type' : 'application/json'
         } 
-        url = f'https://discord.com/api/v10/channels/{channel_id}/messages'
+        url = f'https://discord.com/api/v10/channels/{int(channel_id)}/messages'
         response = requests.get(url, headers=headers) 
         if response.status_code == 200:
            return True
@@ -54,10 +54,10 @@ class DiscordBot:
 
     def getSignal_fromDiscord(self, channel, channel_id, token): 
         headers = {
-           'Authorization' : token,
+           'Authorization' :  f"{token}",
            'Content-Type' : 'application/json'
         } 
-        url = f'https://discord.com/api/v9/channels/{channel_id}/messages'
+        url = f'https://discord.com/api/v9/channels/{int(channel_id)}/messages'
         response = requests.get(url, headers=headers) 
         if response.status_code == 200:
             messages = response.json()

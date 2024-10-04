@@ -63,7 +63,7 @@ class RobinhoodClient :
     def sell_all(self) : 
         print(self.account_number, "  account_number" )
         if self.account_number==None :return
-        positions = rh.options.get_open_option_positions(str(self.account_number))
+        positions = rh.options.get_open_option_positions(self.account_number)
         if len(positions)==0 : return
 # positions = get_positions()  
         for position in positions['results']:  
@@ -106,7 +106,7 @@ class RobinhoodClient :
                 strike=float(strike_price),
                 optionType=trade_type.lower(),
                 timeInForce='gtc',
-                account_number=str(self.account_number)
+                account_number=self.account_number
             )
             return order
             

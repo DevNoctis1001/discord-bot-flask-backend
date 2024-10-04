@@ -19,8 +19,6 @@ config = ConfigParser()
 file_path ="config.ini"
 config.read(file_path)
 
-with open('settings/setting.json', 'r') as json_file:
-    saved_datas = json.load(json_file)
 
 class MyBot:
     def __init__(self):
@@ -31,9 +29,16 @@ class MyBot:
          
     def connect_check(self):
         #TELEGRAM CONNECT
+                
+        with open('settings/setting.json', 'r') as json_file:
+            saved_datas = json.load(json_file)
         try:
             self.telegramBot = TelegramBot(saved_datas["TELEGRAM_TOKEN"], saved_datas["TELEGRAM_CHAT_ID"])
-            print(f'Telegram connect success')
+            is_connect  =self.telegramBot.check_telegram()
+            if is_connect == True:
+                print(f'Telegram connect success')
+            else :
+                print(f'Telegram connect error.')
         except Exception as e :
             print(f'Telegram connect error: {e}')
             
@@ -44,7 +49,7 @@ class MyBot:
             try:
                 mfa= pyotp.TOTP(account['totp_secret']).now()
                 robin = RobinhoodClient(account['username'], account['password'], mfa, account['type'], account['account_number'])
-                
+                # print(f"account =\n")
                 isconnect = robin.check_connect()
                 if isconnect == False:
                     self.telegramBot.send_message(f"🔥Robinhood account is not connected.\n\nAccount Number:{account['account_number']}")    
@@ -127,6 +132,9 @@ class MyBot:
             return
         datetime_central = datetime.now(tz_CentralTime)
         while self.is_alive == True:
+            
+            with open('settings/setting.json', 'r') as json_file:
+                saved_datas = json.load(json_file)
             current_time = datetime_central.strftime("%H:%M:%S")
             market_open = datetime_central.replace(hour = int(start_time.split(":")[0],base=10), minute =int(start_time.split(":")[1], base=10), second = int(start_time.split(":")[2], base=10), microsecond= 0)
             market_close = datetime_central.replace(hour = int(end_time.split(":")[0],base=10), minute =int(end_time.split(":")[1], base=10), second = int(end_time.split(":")[2], base=10), microsecond= 0)
@@ -157,7 +165,7 @@ class MyBot:
                         self.confirm_discordsignal(channel, signal['timestamp'])  
             else :
                 print("This is not market time.")
-            time.sleep(60)
+            time.sleep(10)
 
     def confirm_discordsignal(self,channel, timestamp):
         if not os.path.exists(self.discordBot.last_time_save_file):
@@ -202,6 +210,11 @@ class MyBot:
 
         bid_price, ask_price = self.robinhood[account_index].get_bid_ask_price(option_id[0])
         midpoint_price = (bid_price + ask_price)/2.0
+
+        
+        with open('settings/setting.json', 'r') as json_file:
+            saved_datas = json.load(json_file)
+
         threshold = float(saved_datas["threshold"][account_index])
         delay = float(saved_datas["delay"][account_index])
         multify = (1+threshold/100)
@@ -277,9 +290,9 @@ def save_settings():
     if request.is_json:
         # Get the JSON data
         data = request.get_json()
-        print('Received JSON data:', data) 
     with open("settings/setting.json","w") as file:
         json.dump(data, file)
+    mybot.connect_check()
     return "HI"
  
 @app.route('/sell',methods=['GET'])

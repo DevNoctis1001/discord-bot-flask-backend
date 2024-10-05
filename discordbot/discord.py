@@ -1,20 +1,12 @@
-import os
 import requests
 import json
 import re
 from datetime import datetime, timezone
-from dotenv import load_dotenv
-from configparser import ConfigParser
 import time
-# import asyncio
-# import nest_asyncio
-
-
-config = ConfigParser()
-file_path ="config.ini"
-config.read(file_path)
+import os
 
 class DiscordBot:
+    # Construct of this class
     def __init__(self, channels, channel_ids, authorization):
         self.lasttimestamp = None
        
@@ -40,6 +32,7 @@ class DiscordBot:
                 print(f'error=> {e}')
         print("DiscordBot Init...")
  
+    # Check the connection
     def check_connection(self, channel_id, token): 
         headers = {
            'Authorization' : f"{token}",
@@ -52,6 +45,7 @@ class DiscordBot:
         else:
            return False
 
+    # Fetch the signal from discord channel
     def getSignal_fromDiscord(self, channel, channel_id, token): 
         headers = {
            'Authorization' :  f"{token}",
@@ -97,10 +91,10 @@ class DiscordBot:
 
     #Parse ET messages into trade orders
     def parse_et_messages(self,message, timestamp) : 
+        print(f'ET => {message}')
         challenge_pattern = re.compile(r'.*\$100\s*To\s*\$10,000\s*Challenge.*', re.IGNORECASE)
-        # trade_pattern = re.compile(r'\$([A-Z]+)\s(\d+)(c|p)\s@\.(\d+)')
-        # trade_pattern = re.compile(r'.*(\d{1,2}/\d{1,2})\s+\$([A-Z]+)\s+(\d+)(c|p)\s+@(\d+(\.\d+)?)')
         trade_pattern = re.compile(r'(\d+/\d+)\s+\$(\w+)\s+(\d+)([c])\s+@((\d+)?\.\d+)')
+
         trades = None
         if challenge_pattern.search(message):
             match = trade_pattern.search(message)
@@ -120,10 +114,12 @@ class DiscordBot:
                     'expiration_date' : expiration_date,
                     'timestamp' : timestamp
                 }
+        print(f'Parsed message => {trades}')
         return trades
 
     #Parse DT messages into trade orders
     def parse_dt_messages(self, message, timestamp) :
+        print(f'DT => {message}')
         order_pattern = re.compile(r'^\$([A-Z]+)\s.*(?<!➡️)')
         trade_pattern = re.compile(r'^\$([A-Z]+)\n((\d{2}) (\w{3}) (\d{2})) \$([\d.]+)([cp])\s+\$((\d+)?\.\d+)')
         
@@ -165,15 +161,19 @@ class DiscordBot:
                     'expiration_date':formatted_date,
                     'timestamp' : timestamp                
                 }
+        print(f'Parsed message => {trades}')
         return trades
 
     # Parse MM messages into trade orders
     def parse_mm_messages(self, message, timestamp) :
+        print(f'MM => {message}')
         check_pattern  = re.compile(r'^\$(\w+).*(🚨).*') 
         trade_pattern = re.compile(r'^\$(\w+)\s+(\d+(\.\d+)?)\s+(CALL|PUT)\s+(\d{1,2}/\d{1,2}(?:/\d{2,4})?)\s+@\s+(\d+(\.\d+)?).*🚨')
         trades= None
         invalid_trades =[]
+        print(f'MM = > ', message)
         if check_pattern.match(message):
+            print(f'MM = > ', message)
             match = trade_pattern.search(message)
             if match:
                 ticker = match.group(1)
@@ -191,11 +191,13 @@ class DiscordBot:
                     'timestamp' : timestamp
                 }
 
+        print(f'Parsed message => {trades}')
         return trades
 
 
     # Parse SRE QT + PA messages into trade orders
     def parse_sre_messages(self,message, timestamp):
+        print(f'SRE => {message}')
         trade_pattern = re.compile(
             r'(\d{1,2}/\d{1,2})\s\$(\w+)\s(Call|Put)\sat\s\$(\d+)\sat\s(\d+(\.\d+)?)\s.*@everyone|@everyone\s*\n*\n*(\d{1,2}/\d{1,2})\s\$(\w+)\s(Call|Put)\sat\s\$(\d+)\sat\s(\d+(\.\d+)?)'
         )
@@ -225,8 +227,10 @@ class DiscordBot:
                     'expiration_date': expiration_date,
                     'timestamp' : timestamp
                 }
+        print(f'Parsed message => {trades}')
         return trades
         
+    # Change the date format "%m/%d" => "%Y-%m-%d"
     def change_date_format(self, date_str):
         # Get today's date
         today = datetime.today()

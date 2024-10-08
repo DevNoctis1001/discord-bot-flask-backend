@@ -61,6 +61,7 @@ class MyBot:
                     robin.account_type = account['type']
                     robin.account_number=account['account_number']
                     robin.is_connect = True
+                    
                     print(f'Robinhood account{i} connect success')
                 self.robinhood.append(robin)
             except Exception as e:
@@ -271,13 +272,14 @@ class MyBot:
         max_contracts = int(float(cap) // (midpoint_price * 100))
 
         # Place the buy order
-        order = self.robinhood[account_index].order_buy_limit(ticker,
-                                        selected_expiration, 
-                                        strike_price, 
-                                        trade_type, 
-                                        quantity=max_contracts, 
-                                        limitPrice=midpoint_price)
+        self.robinhood[account_index].check_connect()
+        order =self.robinhood[account_index].place_buy_limit_order(ticker, midpoint_price, max_contracts, selected_expiration, strike_price, trade_type)
+        if order == None:
+            self.telegramBot.send_message(f"🔥The order was not placed.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\nReason: Can't place the order. Plz check your account.")
+            return False
         if 'id' in order: # If the order is successful.
+            self.telegramBot.send_message(f"Account {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\n Order was placed successfully.")
+            self.robinhood[account_index].orders.append(order['id'])
             print(f"Account {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\n Order was placed successfully.")
         else : # If the order fails.
             self.telegramBot.send_message(f"🔥The order was not placed.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\nReason: {order}")
@@ -287,23 +289,28 @@ class MyBot:
         delay = float(saved_datas["delay"][account_index])
         while time.time() - start_time < delay:
             # Fetch the current ask price
-            _ , current_ask_price = self.robinhood[account_index].get_bid_ask_price(option_id[0])
-
-            # If current ask price is over threshold : return False.
-            if current_ask_price >= multify * float(price):
-                self.robinhood[account_index].cancel_order(int(order['id']))
-                self.telegramBot.send_message(f"🔥The order was not triggered.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\nReason: Buy-in price increased too quickly.")
-                return False
-            
-            # If the order is filled : return True
-            order_info = self.robinhood[account_index].get_order_info(order['id'])
-            if order_info != None and order_info['state'] == 'filled':
-                return True
+            try:
+                _ , current_ask_price = self.robinhood[account_index].get_bid_ask_price(option_id[0])
+                print("current_ask_price => ", current_ask_price)
+                # If current ask price is over threshold : return False.
+                if current_ask_price >= multify * float(price):
+                    self.robinhood[account_index].cancel_order(int(order['id']))
+                    self.telegramBot.send_message(f"🔥The order was not triggered.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\nReason: Buy-in price increased too quickly.")
+                    return False
+                
+                # If the order is filled : return True
+                order_info = self.robinhood[account_index].get_order_info(order['id'])
+                if order_info != None and order_info['state'] == 'filled':
+                    return True
+            except Exception as e:
+                print(f"Error occurs: {e}")
+                break
             time.sleep(1)
         # Cancel the order if not filled within delay seconds
         self.robinhood[account_index].cancel_order(order['id'])
+        self.robinhood[account_index].orders.remove(order['id'])
         self.telegramBot.send_message(f"🔥The order was not triggered.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\nReason: Buy order not filled in time.")
-    
+  
 # Instance of class MyBot.
 mybot = MyBot()
      
@@ -363,7 +370,12 @@ def get_settings():
 # Run the server
 if __name__ == "__main__":
     # Launch the bot.
-    mybot.on_start()
+    try:
+        mybot.on_start()
 
-    # Launch the server
-    app.run(host="0.0.0.0", port=8080)
+        # Launch the server
+        app.run(host="0.0.0.0", port=8080)
+    except Exception as e :
+        print(f'Server error occurs. {e}')
+        mybot.telegramBot.send_message(f"🔥The bot is closed!!!!")
+        exit()

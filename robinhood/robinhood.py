@@ -2,6 +2,7 @@ import robin_stocks.robinhood as rh
 from datetime import datetime,timedelta, timezone
 import pytz
 import json
+import time
 
 class RobinhoodClient :
     def __init__(self, username, password, mfa, account_type, account_number) :
@@ -11,11 +12,14 @@ class RobinhoodClient :
         self.account_type = None
         self.account_number= None
         self.is_connect = False
+        self.token = None
+        self.orders=[]
 
     # Check the connect of the robinhood account
     def check_connect(self):
         try:
             result = rh.login(username = self.username, password = self.password, by_sms=True, store_session = False, mfa_code = self.mfa_code)
+            self.token = result['access_token']
             return True
         except Exception as e:
             print(f"Failed to login to Robinhood: {e}")  
@@ -47,7 +51,12 @@ class RobinhoodClient :
         if self.account_number==None :return
 
         # Fetch all opened positions in the current account.
-        positions = rh.options.get_open_option_positions(self.account_number)
+        positions = rh.options.get_open_option_positions(str(self.account_number))
+
+        print(self.orders)
+        for order in self.orders:
+            self.cancel_order(order)
+
         if len(positions)==0 : return
         
         # Sell all opened positions in the market price
@@ -62,7 +71,7 @@ class RobinhoodClient :
                     expiration_date=position['expiration_date']
                 )
                 print("Order Response:", response)
-                print(f"Sold {quantity} shares of {symbol}")
+                print(f"Sold {quantity} shares of {position['instrument']['symbol']}")
             time.sleep(1)
 
     # Get the bid and ask price of the option by the option id.
@@ -79,21 +88,21 @@ class RobinhoodClient :
             return -1
             
     # Place buy limit order
-    def order_buy_limit(self, symbol, expiration_date, strike_price, trade_type, quantity, limitPrice):
+    def place_buy_limit_order(self, symbol, limit_price, quantity, expiration_date, strike_price, trade_type):
         try:
-            print(f'------ORDER_BUY_LIMIT-----------\n{symbol} {expiration_date} {strike_price} {trade_type.lower()} {quantity} {limitPrice} {self.account_number}\n---------------------')
+            print(f'------ORDER_BUY_LIMIT-----------\n{symbol} {expiration_date} {strike_price} {trade_type.lower()} {quantity} {limit_price} {self.account_number}\n---------------------')
             order = rh.orders.order_buy_option_limit(
                 positionEffect='open',
                 creditOrDebit='debit',
-                price=round(limitPrice,3),
+                price=round(limit_price,3),
                 symbol=symbol,
                 quantity=min(quantity,500),
                 expirationDate=expiration_date,
                 strike=float(strike_price),
                 optionType=trade_type.lower(),
                 timeInForce='gtc',
-                account_number=self.account_number
-            )
+                account_number=str(self.account_number)
+            ) 
             return order
             
         except Exception as e:  
@@ -101,6 +110,8 @@ class RobinhoodClient :
     
     # Cancel the order by order id.
     def cancel_order(self, order_id):
+        print("canceling order : ", order_id) 
+
         try:
             order = rh.orders.cancel_option_order(str(order_id))
             return order
@@ -153,11 +164,12 @@ class RobinhoodClient :
 
     # Get the order info by the id
     def get_order_info(self, order_id):
+        # print(order_id)
         try:
-            order_info = rh.orders.get_option_order_info(str(order_id))
-            print(f"--------ORDER INFO--------------\n{order_info}\n-------------------------")
-            # if order_info
-            return order_info[0]  # first dictionary only
+            order_info = rh.orders.get_option_order_info(order_id)
+            # print(order_info)
+            return order_info
+            # return order_info[0]  # first dictionary only
         except Exception as e:
             print(f"An error occurred while getting order info for ID {order_id}: {e}")
             return None

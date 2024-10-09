@@ -1,0 +1,48 @@
+SRE => Lotto trade @everyone
+
+10/8 $IWM Put at $218 at 0.23
+----------------------------
+strike_price => 218
+----------------------------
+Parsed message => {'ticker': 'IWM', 'strike_price': '218', 'trade_type': 'Put', 'price': '0.23', 'expiration_date': '10/8'}
+ -------------------------------------------
+SRE => Lotto trade @everyone
+
+10/8 $IWM Put at $218
+----------------------------
+strike_price => 218
+----------------------------
+Parsed message => {'ticker': 'IWM', 'strike_price': '218', 'trade_type': 'Put', 'price': 'None', 'expiration_date': '10/8'}
+ -------------------------------------------
+SRE => Lotto trade @everyone
+
+$IWM Put at $218 at 0.23
+----------------------------
+strike_price => 218
+----------------------------
+Parsed message => {'ticker': 'IWM', 'strike_price': '218', 'trade_type': 'Put', 'price': '0.23', 'expiration_date': 'None'}
+ -------------------------------------------
+SRE => Lotto trade @everyone
+
+$IWM Put at 0.23
+----------------------------
+strike_price => None
+----------------------------
+Parsed message => {'ticker': 'IWM', 'strike_price': 'None', 'trade_type': 'Put', 'price': '0.23', 'expiration_date': 'None'}
+ -------------------------------------------
+SRE => Lotto trade @everyone
+
+10/8 $IWM at 0.23
+----------------------------
+strike_price => None
+----------------------------
+Parsed message => {'ticker': 'IWM', 'strike_price': 'None', 'trade_type': 'None', 'price': '0.23', 'expiration_date': '10/8'}
+ -------------------------------------------
+SRE => Lotto trade @everyone
+
+10/8 $IWM Put at 0.23
+----------------------------
+strike_price => None
+----------------------------
+Parsed message => {'ticker': 'IWM', 'strike_price': 'None', 'trade_type': 'Put', 'price': '0.23', 'expiration_date': '10/8'}
+ -------------------------------------------

@@ -1,0 +1,1 @@
+MM => $CVS 67 CALL @ 0.42 DAY / SWING TRADE 🚨 @everyoneparsed message => {'ticker': 'CVS', 'strike_price': '67', 'trade_type': 'CALL', 'price': '0.42', 'expiration_date': 'None', 'timestamp': '2024-10-08T16:01:50.375000+00:00'}

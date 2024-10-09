@@ -3,14 +3,15 @@ from datetime import datetime,timedelta, timezone
 import pytz
 import json
 import time
+import pyotp
 
 class RobinhoodClient :
-    def __init__(self, username, password, mfa, account_type, account_number) :
+    def __init__(self, username, password, totp, account_type, account_number) :
         self.username = username
         self.password = password
-        self.mfa_code = mfa
-        self.account_type = None
-        self.account_number= None
+        self.totp = totp
+        self.account_type = account_type
+        self.account_number= account_number
         self.is_connect = False
         self.token = None
         self.orders=[]
@@ -18,7 +19,8 @@ class RobinhoodClient :
     # Check the connect of the robinhood account
     def check_connect(self):
         try:
-            result = rh.login(username = self.username, password = self.password, by_sms=True, store_session = False, mfa_code = self.mfa_code)
+            mfa= pyotp.TOTP(self.totp).now()
+            result = rh.login(username = self.username, password = self.password, by_sms=True, store_session = False, mfa_code = mfa)
             self.token = result['access_token']
             return True
         except Exception as e:
@@ -80,9 +82,11 @@ class RobinhoodClient :
             quote = rh.options.get_option_market_data_by_id(str(option_id))
             if not quote or len(quote) != 1:
                 raise ValueError(f"Unexpected number of items in quote date: {len(quote)}. Expected exactly on dictionary.")
+            # print("quoto => ",quote[0])
             bid_price = float(quote[0].get('bid_price', 0))
             ask_price = float(quote[0].get('ask_price', 0 ))
-            return bid_price, ask_price
+            mid_price = float(quote[0].get('adjusted_mark_price_round_down',0))
+            return bid_price, ask_price, mid_price
         except Exception as e:
             print(f"Error: {e}")
             return -1

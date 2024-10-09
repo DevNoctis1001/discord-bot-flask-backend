@@ -5,7 +5,6 @@ from configparser import ConfigParser
 from discordbot.discord import DiscordBot
 from robinhood.robinhood import RobinhoodClient
 from telegrambot.telegrambot import TelegramBot
-import pyotp
 import json
 from threading import Thread
 import numpy as np
@@ -38,11 +37,6 @@ class MyBot:
         #TELEGRAM CONNECT    
         try:
             self.telegramBot = TelegramBot(saved_datas["TELEGRAM_TOKEN"], saved_datas["TELEGRAM_CHAT_ID"])
-            is_connect  = self.telegramBot.check_telegram()
-            if is_connect == True:
-                print(f'Telegram connect success')
-            else :
-                print(f'Telegram connect error.')
         except Exception as e :
             print(f'Telegram connect error: {e}')
             
@@ -51,8 +45,7 @@ class MyBot:
         self.robinhood = []
         for account in saved_datas['accounts']:
             try:
-                mfa= pyotp.TOTP(account['totp_secret']).now()
-                robin = RobinhoodClient(account['username'], account['password'], mfa, account['type'], account['account_number'])
+                robin = RobinhoodClient(account['username'], account['password'], account['totp_secret'], account['type'], account['account_number'])
                 isconnect = robin.check_connect()
                 if isconnect == False:
                     self.telegramBot.send_message(f"🔥Robinhood account is not connected.\n\nAccount Number:{account['account_number']}")    
@@ -181,13 +174,12 @@ class MyBot:
                             
                             # If robinhood account excluse this channel: skip
                             if saved_datas['discord_channel_use'][i][index] != 1:
-                                print(f"{channel} excluses in Robinhood account{index}")
+                                print(f"{channel} excluses in Robinhood account{i}")
                                 continue
 
                             # If ticker from the signal is in exclusion list: skip
                             ticker_ex_list=saved_datas["ticker_exclusion_list"][i]
                             if signal['ticker'] in ticker_ex_list: continue
-
                             # Place order and print the result
                             print(f"{i} => ", self.place_order(signal, channel,i, index))
                         
@@ -234,6 +226,14 @@ class MyBot:
         price = signal['price']
         trade_type = signal['trade_type']
         desirable_expiration_date = signal['expiration_date']
+        
+        # Import the setting datas to get the threshold percent and delay time.
+        with open('settings/setting.json', 'r') as json_file:
+            saved_datas = json.load(json_file)
+
+        if signal["ticker"] == "None" or signal["trade_type"] == "None" or signal["price"] == "None" or signal["strike_price"] == "None" :
+            self.telegramBot.send_message(f"🔥The order was not placed.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\nReason: Invalid elements in buy signal.")
+            return False
         # Search the fittable expirate date
         selected_expiration = self.robinhood[account_index].select_expiration_date(ticker, desirable_expiration_date)
 
@@ -250,14 +250,9 @@ class MyBot:
         if len(option_id)==0 : return False
 
         # Fetch the bid and ask price
-        bid_price, ask_price = self.robinhood[account_index].get_bid_ask_price(option_id[0])
+        bid_price, ask_price, midpoint_price = self.robinhood[account_index].get_bid_ask_price(option_id[0])
         # Calculate the mid price
-        midpoint_price = (bid_price + ask_price)/2.0
         
-        # Import the setting datas to get the threshold percent and delay time.
-        with open('settings/setting.json', 'r') as json_file:
-            saved_datas = json.load(json_file)
-
         threshold = float(saved_datas["threshold"][account_index])
         multify = (1+threshold/100)
 
@@ -275,7 +270,7 @@ class MyBot:
         self.robinhood[account_index].check_connect()
         order =self.robinhood[account_index].place_buy_limit_order(ticker, midpoint_price, max_contracts, selected_expiration, strike_price, trade_type)
         if order == None:
-            self.telegramBot.send_message(f"🔥The order was not placed.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\nReason: Can't place the order. Plz check your account.")
+            self.telegramBot.send_message(f"🔥The order was not placed.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\nReason: Can't place the order. Please check your account.")
             return False
         if 'id' in order: # If the order is successful.
             self.telegramBot.send_message(f"Account {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\n Order was placed successfully.")
@@ -290,7 +285,7 @@ class MyBot:
         while time.time() - start_time < delay:
             # Fetch the current ask price
             try:
-                _ , current_ask_price = self.robinhood[account_index].get_bid_ask_price(option_id[0])
+                _ , current_ask_price, _ = self.robinhood[account_index].get_bid_ask_price(option_id[0])
                 print("current_ask_price => ", current_ask_price)
                 # If current ask price is over threshold : return False.
                 if current_ask_price >= multify * float(price):

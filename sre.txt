@@ -1,0 +1,5 @@
+SRE => 10/7 $SPY Put at $569 @everyone
+----------------------------
+strike_price => 569
+----------------------------
+Parsed message => {'ticker': 'SPY', 'strike_price': '569', 'trade_type': 'Put', 'price': 'None', 'expiration_date': '2024-10-07', 'timestamp': '2024-10-08T17:13:13.681000+00:00'}

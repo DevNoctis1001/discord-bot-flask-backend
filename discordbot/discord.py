@@ -81,6 +81,7 @@ class DiscordBot:
                     continue
                 if parsed_message==None :
                     continue
+                print(f"----------{channel}-----------------------")
                 trades.append(parsed_message)
                 break
             return trades
@@ -91,27 +92,28 @@ class DiscordBot:
 
     #Parse ET messages into trade orders
     def parse_et_messages(self,message, timestamp) : 
-        print(f'ET => {message}')
+        # message = "🚀$100 TO $10,000 Challenge🚀\n\n🚀10/4 $CZR @.20 | 25 CONTRACTS🚀 @everyone"
+        print(f'ET => {message} {timestamp}')
         challenge_pattern = re.compile(r'.*\$100\s*To\s*\$10,000\s*Challenge.*', re.IGNORECASE)
-        trade_pattern = re.compile(r'(\d+/\d+)\s+\$(\w+)\s+(\d+)([c])\s+@((\d+)?\.\d+)')
+        trade_pattern = re.compile(r'(\d+/\d+)?\s*(\$(\w+))?\s*(\d+)?([c])?\s*@((\d+)?\.\d+)?')
 
         trades = None
         if challenge_pattern.search(message):
             match = trade_pattern.search(message)
             if match:
-                expiration_date = self.change_date_format(match.group(1))
+                expiration_date = match.group(1)
                 # expiration_date = match.group(1)
-                ticker = match.group(2)
-                strike_price = match.group(3)
-                trade_type = match.group(4).upper()
-                price = match.group(5)
+                ticker = match.group(3)
+                strike_price = match.group(4)
+                trade_type = match.group(5)
+                price = match.group(6)
  
                 trades={
-                    'ticker' : ticker, 
-                    'strike_price' : strike_price,
-                    'trade_type' : 'Call' if trade_type =='C' else 'Put',
-                    'price' : price,
-                    'expiration_date' : expiration_date,
+                    'ticker' : ticker if ticker else  'None', 
+                    'strike_price' : strike_price if strike_price else  'None',
+                    'trade_type' : ('Call' if trade_type.upper() =='C' else 'Put') if trade_type else 'None',
+                    'price' : price if price else 'None',
+                    'expiration_date' : self.change_date_format(expiration_date) if expiration_date else 'None',
                     'timestamp' : timestamp
                 }
         print(f'Parsed message => {trades}')
@@ -119,9 +121,10 @@ class DiscordBot:
 
     #Parse DT messages into trade orders
     def parse_dt_messages(self, message, timestamp) :
-        print(f'DT => {message}')
+        print(f"DT =>{message}------------------------\n")
+        # Define the regex pattern
+        pattern = re.compile(r'\$(\w+)\n((\d{1,2})\s+(\w+)\s+(\d{2}))?\s*(\s*\$([\d.]+)([c|p]?)\s*)?(\s*\$([\d.]+))?')
         order_pattern = re.compile(r'^\$([A-Z]+)\s.*(?<!➡️)')
-        trade_pattern = re.compile(r'^\$([A-Z]+)\n((\d{2}) (\w{3}) (\d{2})) \$([\d.]+)([cp])\s+\$((\d+)?\.\d+)')
         
         trades = None
         arr_month ={
@@ -138,26 +141,31 @@ class DiscordBot:
             "Nov":11,
             "Dec":12,
         }
+        # Find matches in the message
+        match = pattern.search(message)
+ 
         if order_pattern.match(message) :
-            match = trade_pattern.search(message)
+            match = pattern.search(message)
             if match:
-                ticker = match.group(1)
-                day = match.group(3)
-                month = match.group(4)
-                year = match.group(5)
-                strike_price = match.group(6)
-                trade_type = match.group(7).upper() 
-                price = match.group(8)
+                ticker = match.group(1)             # Stock symbol
+                day = match.group(3)                 # Day
+                month = match.group(4)               # Month
+                year = match.group(5)                # Year
+                strike_price = match.group(7)        # Strike price (without 'c')
+                trade_type = match.group(8)          # 'c' if exists, otherwise empty
+                price = match.group(10)               # Additional price    
                 
+                formatted_date ='None'
+                if year and month and day:
                 # Parse the date string
-                date_obj = datetime.strptime(f"{year}/{arr_month[month]}/{day}", "%y/%m/%d")
-                # Format the date object to the desired output format
-                formatted_date = date_obj.strftime("%Y-%m-%d")
+                    date_obj = datetime.strptime(f"{year}/{arr_month[month]}/{day}", "%y/%m/%d")
+                    # Format the date object to the desired output format
+                    formatted_date = date_obj.strftime("%Y-%m-%d")
                 trades={
-                    'ticker' : ticker,
-                    'strike_price' : strike_price,
-                    'trade_type' : 'Call' if trade_type == 'C' else 'Put',
-                    'price':price,
+                    'ticker' : ticker if ticker else 'None',
+                    'strike_price' : strike_price if strike_price else 'None',
+                    'trade_type' : ('Call' if trade_type == 'c' else 'Put') if trade_type else 'None' ,
+                    'price':price if price else 'None',
                     'expiration_date':formatted_date,
                     'timestamp' : timestamp                
                 }
@@ -166,65 +174,70 @@ class DiscordBot:
 
     # Parse MM messages into trade orders
     def parse_mm_messages(self, message, timestamp) :
-        print(f'MM => {message}')
-        check_pattern  = re.compile(r'^\$(\w+).*(🚨).*') 
-        trade_pattern = re.compile(r'^\$(\w+)\s+(\d+(\.\d+)?)\s+(CALL|PUT)\s+(\d{1,2}/\d{1,2}(?:/\d{2,4})?)\s+@\s+(\d+(\.\d+)?).*🚨')
-        trades= None
-        invalid_trades =[]
-        print(f'MM = > ', message)
-        if check_pattern.match(message):
-            print(f'MM = > ', message)
-            match = trade_pattern.search(message)
-            if match:
-                ticker = match.group(1)
-                strike_price = match.group(2)
-                trade_type = match.group(4).capitalize()
-                expiration_date = self.change_date_format(match.group(5))
-                price = match.group(6)
+        # message = "$CVS 67 CALL @ 0.42 DAY / SWING TRADE 🚨 @everyone"
+        # Updated regex pattern to correctly capture components
+        pattern = r'^\$(\w+)\s*(\d+(\.\d+)?)?\s*(CALL|PUT)?\s*(\d{1,2}/\d{1,2}(?:/\d{2,4})?)?\s*@\s*(\d+(\.\d+)?)?\s*(.*?)(🚨|❤️)?\s*(.*)?'
+        # with open("mm.txt", "w", encoding="utf-8", errors="ignore") as ff:
+        #     ff.write(f"MM => {message}")
+        # Process each input string
+        match = re.match(pattern, message)
+        trades = None
 
-                trades={
-                    'ticker' : ticker,
-                    'strike_price' : strike_price,
-                    'trade_type' : trade_type,
-                    'price' : price,
-                    'expiration_date' : expiration_date,
-                    'timestamp' : timestamp
-                }
+        if match:
+            identifier = match.group(1)            # The stock identifier (e.g., CVS)
+            strike_price = match.group(2)               # The quantity (e.g., 67)
+            option_type = match.group(4)            # The option type (CALL/PUT)
+            date = match.group(5)                   # The date (e.g., 10/11)
+            price = match.group(6)                  # The price (e.g., 0.42) 
+        
+            trades={
+                'ticker' : identifier,
+                'strike_price' : strike_price if strike_price else 'None',
+                'trade_type' : option_type if option_type else 'None',
+                'price' : price if price else 'None',
+                'expiration_date' : self.change_date_format(date) if date else 'None',
+                'timestamp' : timestamp
+            }
+            # ff.write(f"parsed message => {trades}" )
+        else:
+            print("No match found.")
 
-        print(f'Parsed message => {trades}')
         return trades
 
 
     # Parse SRE QT + PA messages into trade orders
     def parse_sre_messages(self,message, timestamp):
-        print(f'SRE => {message}')
+        # with open("sre.txt","w", encoding = "utf-8" , errors="ignore") as ff:
+        # There’s 100% on $IWM @everyone
+        # SRE ="3pm flush trade. Hoping for a collapse @everyone \n\n10/8 $QQQ Put at $489 at 0.63"
+        print(f'SRE => {message}\n')
         trade_pattern = re.compile(
-            r'(\d{1,2}/\d{1,2})\s\$(\w+)\s(Call|Put)\sat\s\$(\d+)\sat\s(\d+(\.\d+)?)\s.*@everyone|@everyone\s*\n*\n*(\d{1,2}/\d{1,2})\s\$(\w+)\s(Call|Put)\sat\s\$(\d+)\sat\s(\d+(\.\d+)?)'
+            r'(\d{1,2}/\d{1,2})?\s\$(\w+)?(\s(Call|Put))?(\sat\s\$(\d+(\.\d+)?))?(\sat\s(\d+(\.\d+)?))?\s.*@everyone|@everyone\s*\n*\n*(\d{1,2}/\d{1,2})?\s\$(\w+)?(\s(Call|Put))?(\sat\s\$(\d+(\.\d+)?))?(\sat\s(\d+(\.\d+)))?'
         )
-        # check_pattern = re.compile(r'.*@everyone\s*\n*\n*\d{1,2}/\d{1,2}\s\$(\w+).*(Call|Put).*|.*\$(\w+).*(Call|Put).*\s@everyone')
-        check_pattern = re.compile(r'.*@everyone\s*\n*\n*\d{1,2}/\d{1,2}\s\$(\w+).*(Call|Put).*|.*\$(\w+).*(Call|Put).*\s@everyone')
+        check_pattern = re.compile(r'.*@everyone\s*\n*.*\$(\w+)\s+(Put|Call).*|.*\$(\w+)\s+(Put|Call).*\s*\n*@everyone')
         trades = None
-        if check_pattern.match(message) :
+        if check_pattern.search(message):
             match = trade_pattern.search(message)
             if match:
                 if match.group(1):
-                    expiration_date = self.change_date_format(match.group(1))
+                    expiration_date = match.group(1)
                     ticker = match.group(2)
-                    trade_type = match.group(3).capitalize()
-                    strike_price = match.group(4)
-                    price = match.group(5)
+                    trade_type = match.group(4)
+                    strike_price = match.group(6)
+                    price = match.group(9)
                 else:
-                    expiration_date = self.change_date_format(match.group(7))
-                    ticker = match.group(8)
-                    trade_type = match.group(9).capitalize()
-                    strike_price = match.group(10)
-                    price = match.group(11)
+                    expiration_date = match.group(11)
+                    ticker = match.group(12)
+                    trade_type = match.group(14)
+                    strike_price = match.group(16)
+                    price = match.group(19)
+                # ff.write(f'----------------------------\nstrike_price => {strike_price}\n----------------------------\n')
                 trades={
-                    'ticker': ticker,
-                    'strike_price': strike_price,
-                    'trade_type': trade_type,
-                    'price': price,
-                    'expiration_date': expiration_date,
+                    'ticker': ticker if ticker else 'None',
+                    'strike_price': strike_price if strike_price else 'None',
+                    'trade_type': trade_type.capitalize() if trade_type else 'None',
+                    'price': price if price else 'None',
+                    'expiration_date':self.change_date_format(expiration_date) if expiration_date else 'None',
                     'timestamp' : timestamp
                 }
         print(f'Parsed message => {trades}')

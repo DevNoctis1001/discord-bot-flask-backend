@@ -223,7 +223,6 @@ class MyBot:
 
     # Place order and return the result (True : place the order,   False: error occurs)
     def place_order(self, signal, channel, account_index, channel_index) :
-        print(f"signal_____\n,{signal}\n------")
         ticker = signal['ticker']
         target_strike_price = signal['strike_price']
         price = signal['price']
@@ -241,16 +240,14 @@ class MyBot:
         selected_expiration = self.robinhood[account_index].select_expiration_date(ticker, desirable_expiration_date)
 
         # Search the fittable strike price
-        # strike_price, expiration_date = self.robinhood[account_index].select_strike_price(ticker, target_strike_price, trade_type,  target_selected_expiration)
+        strike_price, expiration_date = self.robinhood[account_index].select_strike_price(ticker, target_strike_price, trade_type,  selected_expiration)
         
-        # print(f'strike_price : {strike_price} expiration_date: {expiration_date} \n--------------\n')
-        # return False
         # Fetch the option id.
         option_id = self.robinhood[account_index].get_option_id(
             ticker,
-            target_strike_price,
+            strike_price,
             trade_type,
-            selected_expiration
+            expiration_date
         )
 
         # If no option , return False
@@ -264,7 +261,6 @@ class MyBot:
         threshold = float(saved_datas["threshold"][account_index])
         multify = (1+threshold/100)
 
-        strike_price = target_strike_price
         # If the initial ask price is over threshold
         if(ask_price > float(price)*multify) :
             self.telegramBot.send_message(f"Account {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\nReason: Initial buy-in price too high.")
@@ -278,11 +274,22 @@ class MyBot:
         # Place the buy order
         self.robinhood[account_index].check_connect()
         order =self.robinhood[account_index].place_buy_limit_order(ticker, midpoint_price, max_contracts, selected_expiration, strike_price, trade_type)
+        if order == "PDT":
+            self.telegramBot.send_message(f"🔥The order was not placed.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\nReason: PDT warning.")
+            return False
         if order == None:
             self.telegramBot.send_message(f"🔥The order was not placed.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\nReason: Can't place the order. Please check your account.")
             return False
+        if hasattr(order, 'detail'):
+            if(order['detail']=="You do not have enough overnight buying power to place this order."):
+                self.telegramBot.send_message(f"🔥The order was not placed.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\nReason: Insufficient balance.")
+                return False
+            elif (order['detail']=="Price does not satisfy the min tick value."):
+                self.telegramBot.send_message(f"🔥The order was not placed.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\nReason: Min tick error.")
+                return False;
+            
         if 'id' in order: # If the order is successful.
-            self.telegramBot.send_message(f"Account {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\n Order was placed successfully.")
+            self.telegramBot.send_message(f"🔥Order successful.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\n Order was placed successfully.")
             self.robinhood[account_index].orders.append(order['id'])
             print(f"Account {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\n Order was placed successfully.")
         else : # If the order fails.
@@ -299,6 +306,7 @@ class MyBot:
                 # If current ask price is over threshold : return False.
                 if current_ask_price >= multify * float(price):
                     self.robinhood[account_index].cancel_order(int(order['id']))
+                    self.robinhood[account_index].orders.remove(order['id'])
                     self.telegramBot.send_message(f"🔥The order was not triggered.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\nReason: Buy-in price increased too quickly.")
                     return False
                 

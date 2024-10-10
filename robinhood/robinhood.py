@@ -50,17 +50,18 @@ class RobinhoodClient :
     
     # Sell the opened positions.
     def sell_all(self) : 
+        print(f'Account number =>{self.account_number}')
+
         if self.account_number==None :return
 
         # Fetch all opened positions in the current account.
         positions = rh.options.get_open_option_positions(str(self.account_number))
-
-        print(self.orders)
+        print(f"Print positions= {positions}")
         for order in self.orders:
             self.cancel_order(order)
 
         if len(positions)==0 : return
-        
+        # print(f"openned potion ->{positions}")
         # Sell all opened positions in the market price
         for position in positions['results']:  
             quantity = position['quantity']  
@@ -165,6 +166,45 @@ class RobinhoodClient :
         
         # return today date(daily).
         return today.strftime("%Y-%m-%d")
+    #Get option chain data according to the symbol.
+    def get_option_chain(self, symbol, trade_type):
+        print(f'symbole : {symbol} trade_type :{trade_type}')
+        return rh.options.find_options_by_expiration(symbol, expirationDate =None, optionType=trade_type.lower())
+
+    #Find ATM option.
+    def find_at_the_money_option(self, options, current_price) :
+        # Check if options list is empty
+        if not options:
+            raise ValueError("Options list is empty. No available options for this ticker.")
+        # Find the closest option
+        else :
+            closest_option = min(options, key=lambda x: abs(float(x['strike_price']) - current_price))
+            return closest_option
+
+    # Purchase at the money option
+    def purchase_at_the_money_option(self, symbol, current_price, target_strike_price, trade_type, expiration_date):
+        options = self.get_option_chain(symbol, trade_type)
+        strike_prices =[float(option['strike_price']) for option in options]
+
+        if target_strike_price not in strike_prices:
+            atm_option = self.find_at_the_money_option(options, current_price)
+            strike_price_to_purchase = atm_option['strike_price']
+            expiration_date= atm_option['expiration_date']
+            option_id = atm_option['id']
+            print(f"Purchasing ATM option at strike : {strike_price_to_purchase}, expiation: {expiration_date}")
+            return strike_price_to_purchase, expiration_date
+        else :
+            print(f"The strike price {target_strike_price} is valid.")
+            return target_strike_price, expiration_date
+
+    # Find the fittable strike price(If the target_strike_price is on the chain: return itself, else: return at the money.)
+    def select_strike_price(self, ticker, target_strike_price, trade_type, selected_expiration) :
+        print(f'ticker test: {ticker} {target_strike_price}')
+        current_price = 150
+        return self.purchase_at_the_money_option(ticker, current_price, target_strike_price, trade_type,selected_expiration)
+        # print(rh.options.get_chains(ticker))
+
+
 
     # Get the order info by the id
     def get_order_info(self, order_id):

@@ -158,7 +158,6 @@ class MyBot:
                     if signals == None:  
                         self.telegramBot.send_message(f"🔥Discord Channel is not connected.\n\nChannel Name: {channel.upper()}")
                         continue
-                    
                     # Iterate every signal
                     for signal in signals:
                         for i in range(0,7):  # Iterate every robinhood accounts.
@@ -180,6 +179,9 @@ class MyBot:
                             # If ticker from the signal is in exclusion list: skip
                             ticker_ex_list=saved_datas["ticker_exclusion_list"][i]
                             if signal['ticker'] in ticker_ex_list: continue
+
+                            #If ticker from the signal is opened already : skip
+                            if signal['ticker'] in self.robinhood[i].orders: continue
                             # Place order and print the result
                             print(f"{i} => ", self.place_order(signal, channel,i, index))
                         
@@ -221,8 +223,9 @@ class MyBot:
 
     # Place order and return the result (True : place the order,   False: error occurs)
     def place_order(self, signal, channel, account_index, channel_index) :
+        print(f"signal_____\n,{signal}\n------")
         ticker = signal['ticker']
-        strike_price = signal['strike_price']
+        target_strike_price = signal['strike_price']
         price = signal['price']
         trade_type = signal['trade_type']
         desirable_expiration_date = signal['expiration_date']
@@ -232,15 +235,20 @@ class MyBot:
             saved_datas = json.load(json_file)
 
         if signal["ticker"] == "None" or signal["trade_type"] == "None" or signal["price"] == "None" or signal["strike_price"] == "None" :
-            self.telegramBot.send_message(f"🔥The order was not placed.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\nReason: Invalid elements in buy signal.")
+            self.telegramBot.send_message(f"🔥The order was not placed.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {target_strike_price}\nReason: Invalid elements in buy signal.")
             return False
         # Search the fittable expirate date
         selected_expiration = self.robinhood[account_index].select_expiration_date(ticker, desirable_expiration_date)
 
+        # Search the fittable strike price
+        # strike_price, expiration_date = self.robinhood[account_index].select_strike_price(ticker, target_strike_price, trade_type,  target_selected_expiration)
+        
+        # print(f'strike_price : {strike_price} expiration_date: {expiration_date} \n--------------\n')
+        # return False
         # Fetch the option id.
         option_id = self.robinhood[account_index].get_option_id(
             ticker,
-            strike_price,
+            target_strike_price,
             trade_type,
             selected_expiration
         )
@@ -256,6 +264,7 @@ class MyBot:
         threshold = float(saved_datas["threshold"][account_index])
         multify = (1+threshold/100)
 
+        strike_price = target_strike_price
         # If the initial ask price is over threshold
         if(ask_price > float(price)*multify) :
             self.telegramBot.send_message(f"Account {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\nReason: Initial buy-in price too high.")

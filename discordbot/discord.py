@@ -176,31 +176,33 @@ class DiscordBot:
     def parse_mm_messages(self, message, timestamp) :
         # message = "$CVS 67 CALL @ 0.42 DAY / SWING TRADE 🚨 @everyone"
         # Updated regex pattern to correctly capture components
-        pattern = r'^\$(\w+)\s*(\d+(\.\d+)?)?\s*(CALL|PUT)?\s*(\d{1,2}/\d{1,2}(?:/\d{2,4})?)?\s*@\s*(\d+(\.\d+)?)?\s*(.*?)(🚨|❤️)?\s*(.*)?'
+        check_pattern = r'^\$(\w+).*🚨.*'
+        pattern = r'^\$(\w+)\s*(\d+(\.\d+)?)?\s*(CALL|PUT)?\s*(\d{1,2}/\d{1,2}(?:/\d{2,4})?)?\s*@\s*(\d+(\.\d+)?)?\s*(.*?)(🚨)?\s*(.*)?'
         # with open("mm.txt", "w", encoding="utf-8", errors="ignore") as ff:
         #     ff.write(f"MM => {message}")
         # Process each input string
-        match = re.match(pattern, message)
         trades = None
+        if re.match(check_pattern, message):
+            match = re.match(pattern, message)
 
-        if match:
-            identifier = match.group(1)            # The stock identifier (e.g., CVS)
-            strike_price = match.group(2)               # The quantity (e.g., 67)
-            option_type = match.group(4)            # The option type (CALL/PUT)
-            date = match.group(5)                   # The date (e.g., 10/11)
-            price = match.group(6)                  # The price (e.g., 0.42) 
-        
-            trades={
-                'ticker' : identifier,
-                'strike_price' : strike_price if strike_price else 'None',
-                'trade_type' : option_type if option_type else 'None',
-                'price' : price if price else 'None',
-                'expiration_date' : self.change_date_format(date) if date else 'None',
-                'timestamp' : timestamp
-            }
-            # ff.write(f"parsed message => {trades}" )
-        else:
-            print("No match found.")
+            if match:
+                identifier = match.group(1)            # The stock identifier (e.g., CVS)
+                strike_price = match.group(2)               # The quantity (e.g., 67)
+                option_type = match.group(4)            # The option type (CALL/PUT)
+                date = match.group(5)                   # The date (e.g., 10/11)
+                price = match.group(6)                  # The price (e.g., 0.42) 
+            
+                trades={
+                    'ticker' : identifier,
+                    'strike_price' : strike_price if strike_price else 'None',
+                    'trade_type' : option_type if option_type else 'None',
+                    'price' : price if price else 'None',
+                    'expiration_date' : self.change_date_format(date) if date else 'None',
+                    'timestamp' : timestamp
+                }
+                # ff.write(f"parsed message => {trades}" )
+            else:
+                print("No match found.")
 
         return trades
 

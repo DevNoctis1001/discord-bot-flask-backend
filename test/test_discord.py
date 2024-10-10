@@ -71,50 +71,41 @@ def test_sre() :
 
 # Parse SRE QT + PA messages into trade orders
 def parse_sre_messages():
-    messages =[
-        "Lotto trade @everyone\n\n10/8 $IWM Put at $218 at 0.23",
-        "Lotto trade @everyone\n\n10/8 $IWM Put at $218",
-        "Lotto trade @everyone\n\n$IWM Put at $218 at 0.23",
-        "Lotto trade @everyone\n\n$IWM Put at 0.23",
-        "Lotto trade @everyone\n\n10/8 $IWM at 0.23",
-        "Lotto trade @everyone\n\n10/8 $IWM Put at 0.23"
-    ]
-    with open("sre.txt","w", encoding = "utf-8" , errors="ignore") as ff:
-        for message in messages:
-            # message ="Lotto trade @everyone\n\n10/8 $IWM Put at $218 at 0.23"
-            print(f"messag => {message}")
-            ff.write(f'SRE => {message}\n')
-            trade_pattern = re.compile(
-                r'(\d{1,2}/\d{1,2})?\s\$(\w+)?(\s(Call|Put))?(\sat\s\$(\d+(\.\d+)?))?(\sat\s(\d+(\.\d+)?))?\s.*@everyone|@everyone\s*\n*\n*(\d{1,2}/\d{1,2})?\s\$(\w+)?(\s(Call|Put))?(\sat\s\$(\d+(\.\d+)?))?(\sat\s(\d+(\.\d+)))?'
-            )
-            # check_pattern = re.compile(r'.*@everyone\s*\n*\n*\d{1,2}/\d{1,2}\s\$(\w+).*(Call|Put).*|.*\$(\w+).*(Call|Put).*\s@everyone')
-            trades = None
-            match = trade_pattern.search(message)
-            if match:
-                if match.group(1):
-                    expiration_date = match.group(1)
-                    ticker = match.group(2)
-                    trade_type = match.group(4)
-                    strike_price = match.group(6)
-                    price = match.group(9)
-                else:
-                    expiration_date = match.group(11)
-                    ticker = match.group(12)
-                    trade_type = match.group(14)
-                    strike_price = match.group(16)
-                    price = match.group(19)
-                ff.write(f'----------------------------\nstrike_price => {strike_price}\n----------------------------\n')
-                trades={
-                    'ticker': ticker if ticker else 'None',
-                    'strike_price': strike_price if strike_price else 'None',
-                    'trade_type': trade_type.capitalize() if trade_type else 'None',
-                    'price': price if price else 'None',
-                    'expiration_date':expiration_date if expiration_date else 'None',
-                }
-            ff.write(f'Parsed message => {trades}\n -------------------------------------------\n')
-            # return trades
-        # print(f'Parsed message => {trades}\n--------------------------------------------------------------------')
-    # return trades
+    # message ="Todays gameplan $SPY @everyone \n\nI’m actually sticking to my first instinct. Yesterday night I was thinking calls, I didn’t take it yesterday bc we gapped up and pumped. I’m not changing my first idea\n\nLast night I was thinking puts because we pumped to all time highs with no pull backs \n\nThe Puts in watching today\n10/9 $SPY Put at $570"
+    message = "Todays gameplan $SPY @everyone \n\n10/9 $SPY Put at $570"
+    
+    print(f'SRE => {message}\n')
+    trade_pattern = re.compile(
+        r'(\d{1,2}/\d{1,2})?\s\$(\w+)?(\s(Call|Put))?(\sat\s\$(\d+(\.\d+)?))?(\sat\s(\d+(\.\d+)?))?\s.*@everyone|@everyone\s*\n*(\d{1,2}/\d{1,2})?\s\$(\w+)?(\s(Call|Put))?(\sat\s\$(\d+(\.\d+)?))?(\sat\s(\d+(\.\d+)))?'
+    )
+    check_pattern = re.compile(r'.*(\$)?.*@everyone\s*\n*.*\$(\w+)\s+(Put|Call).*|.*\$(\w+)\s+(Put|Call).*(\$)?.*\s*\n*@everyone')
+    trades = None
+    if check_pattern.search(message):
+        match = trade_pattern.search(message)
+        if match:
+            if match.group(1):
+                expiration_date = match.group(1)
+                ticker = match.group(2)
+                trade_type = match.group(4)
+                strike_price = match.group(6)
+                price = match.group(9)
+            else:
+                expiration_date = match.group(11)
+                ticker = match.group(12)
+                trade_type = match.group(14)
+                strike_price = match.group(16)
+                price = match.group(19)
+            # ff.write(f'----------------------------\nstrike_price => {strike_price}\n----------------------------\n')
+            trades={
+                'ticker': ticker if ticker else 'None',
+                'strike_price': strike_price if strike_price else 'None',
+                'trade_type': trade_type.capitalize() if trade_type else 'None',
+                'price': price if price else 'None',
+                'expiration_date':expiration_date if expiration_date else 'None'
+                # 'timestamp' : timestamp
+            }
+    print(f'Parsed message => {trades}')
+    return trades
     
 def parse_dt_message():
     # Define the message
@@ -145,4 +136,4 @@ def parse_dt_message():
         print(f"price: {price if price else 'N/A'}")
     else:
         print("No match found.")
-parse_dt_message()
+parse_sre_messages()

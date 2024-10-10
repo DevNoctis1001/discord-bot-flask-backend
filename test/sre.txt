@@ -1,48 +1,14 @@
-SRE => Lotto trade @everyone
+SRE => Todays gameplan $SPY @everyone 
 
-10/8 $IWM Put at $218 at 0.23
-----------------------------
-strike_price => 218
-----------------------------
-Parsed message => {'ticker': 'IWM', 'strike_price': '218', 'trade_type': 'Put', 'price': '0.23', 'expiration_date': '10/8'}
- -------------------------------------------
-SRE => Lotto trade @everyone
+I’m actually sticking to my first instinct. Yesterday night I was thinking calls, I didn’t take it yesterday bc we gapped up and pumped. I’m not changing my first idea
 
-10/8 $IWM Put at $218
-----------------------------
-strike_price => 218
-----------------------------
-Parsed message => {'ticker': 'IWM', 'strike_price': '218', 'trade_type': 'Put', 'price': 'None', 'expiration_date': '10/8'}
- -------------------------------------------
-SRE => Lotto trade @everyone
+Last night I was thinking puts because we pumped to all time highs with no pull backs 
 
-$IWM Put at $218 at 0.23
-----------------------------
-strike_price => 218
-----------------------------
-Parsed message => {'ticker': 'IWM', 'strike_price': '218', 'trade_type': 'Put', 'price': '0.23', 'expiration_date': 'None'}
- -------------------------------------------
-SRE => Lotto trade @everyone
-
-$IWM Put at 0.23
+The Puts in watching today
+10/9 $SPY Put at $570
+10/9 $QQQ Put at $486
 ----------------------------
 strike_price => None
 ----------------------------
-Parsed message => {'ticker': 'IWM', 'strike_price': 'None', 'trade_type': 'Put', 'price': '0.23', 'expiration_date': 'None'}
- -------------------------------------------
-SRE => Lotto trade @everyone
-
-10/8 $IWM at 0.23
-----------------------------
-strike_price => None
-----------------------------
-Parsed message => {'ticker': 'IWM', 'strike_price': 'None', 'trade_type': 'None', 'price': '0.23', 'expiration_date': '10/8'}
- -------------------------------------------
-SRE => Lotto trade @everyone
-
-10/8 $IWM Put at 0.23
-----------------------------
-strike_price => None
-----------------------------
-Parsed message => {'ticker': 'IWM', 'strike_price': 'None', 'trade_type': 'Put', 'price': '0.23', 'expiration_date': '10/8'}
+Parsed message => {'ticker': 'None', 'strike_price': 'None', 'trade_type': 'None', 'price': 'None', 'expiration_date': 'None'}
  -------------------------------------------

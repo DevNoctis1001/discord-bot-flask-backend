@@ -16,15 +16,28 @@ class DiscordBot:
 
         self.last_time_save_file = "last_time.json"
         if not os.path.exists(self.last_time_save_file):
-            inital_last_time_str = '1900-01-01T00:00:00.000000+00:00'
-            # last_time = datetime.fromisoformat(inital_last_time_str)
+            # last_time.json reset
+            
+            # Get the current local time
+            local_time = datetime.now()
+
+            # Define the GMT timezone
+            gmt_timezone = pytz.timezone('GMT')
+
+            # Convert local time to GMT
+            gmt_time = local_time.astimezone(gmt_timezone)
+
+            # Print the results
+            print("Current Local Time:", local_time)
+            print("Converted GMT Time:", gmt_time)
+            gmt_time_string = gmt_time.strftime('%Y-%m-%dT%H:%M:%S')
             data = {
-                "et": inital_last_time_str,
-                "dt": inital_last_time_str,
-                "mm": inital_last_time_str,
-                "sre_qt": inital_last_time_str,
-                "sre_pa": inital_last_time_str
-            }
+                    "et": gmt_time_string+"+00:00",
+                    "dt": gmt_time_string+"+00:00",
+                    "mm": gmt_time_string+"+00:00",
+                    "sre_qt": gmt_time_string+"+00:00",
+                    "sre_pa": gmt_time_string+"+00:00"
+                }
             try:
                 with open(self.last_time_save_file, "w") as file:
                     json.dump(data, file, indent =4)

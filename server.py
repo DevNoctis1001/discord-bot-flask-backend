@@ -61,6 +61,7 @@ class MyBot:
                 self.telegramBot.send_message(f"🔥Robinhood account is not connected.\n\nAccount Number:{account['account_number']}")    
                 print(f'Robinhood connect error: {e}')
             i = i + 1
+            
 
         #DISCORD CONNECT
         try: 
@@ -82,6 +83,36 @@ class MyBot:
                     print(f'Discord {channel} connect success')
         except Exception as e:
             print(f'Discord connect error: {e}')
+
+        # last_time.json reset
+            
+        # Get the current local time
+        local_time = datetime.now()
+
+        # Define the GMT timezone
+        gmt_timezone = pytz.timezone('GMT')
+
+        # Convert local time to GMT
+        gmt_time = local_time.astimezone(gmt_timezone)
+
+        # Print the results
+        print("Current Local Time:", local_time)
+        print("Converted GMT Time:", gmt_time)
+        gmt_time_string = gmt_time.strftime('%Y-%m-%dT%H:%M:%S')
+        data = {
+                "et": gmt_time_string+"+00:00",
+                "dt": gmt_time_string+"+00:00",
+                "mm": gmt_time_string+"+00:00",
+                "sre_qt": gmt_time_string+"+00:00",
+                "sre_pa": gmt_time_string+"+00:00"
+            }
+        print(data)
+        try:
+            with open(self.discordBot.last_time_save_file, "w") as file:
+                json.dump(data, file, indent =4)
+        except Exception as e:
+            return
+        # return
             
     # Sell all the active position for the specific robinhood account. (index is -1: for all account  else: for the index account)
     def on_sellall(self, index):
@@ -135,7 +166,7 @@ class MyBot:
             return
 
         # Change the now time to US/Central timezone time.
-
+        datetime_central = datetime.now(tz_CentralTime)
         while self.is_alive == True:  # Run when the bot is actived.
             # Import the setting datas.
             with open('settings/setting.json', 'r') as json_file:
@@ -198,14 +229,28 @@ class MyBot:
     # Record the timestamp so that it is not used afterwards.
     def confirm_discordsignal(self,channel, timestamp):
         if not os.path.exists(self.discordBot.last_time_save_file):  # If the save file don't exist: 
-            inital_last_time_str = '1900-01-01T00:00:00.000000+00:00'
+            # last_time.json reset
+            
+            # Get the current local time
+            local_time = datetime.now()
+
+            # Define the GMT timezone
+            gmt_timezone = pytz.timezone('GMT')
+
+            # Convert local time to GMT
+            gmt_time = local_time.astimezone(gmt_timezone)
+
+            # Print the results
+            print("Current Local Time:", local_time)
+            print("Converted GMT Time:", gmt_time)
+            gmt_time_string = gmt_time.strftime('%Y-%m-%dT%H:%M:%S')
             data = {
-                "et": inital_last_time_str,
-                "dt": inital_last_time_str,
-                "mm": inital_last_time_str,
-                "sre_qt": inital_last_time_str,
-                "sre_pa": inital_last_time_str
-            }
+                    "et": gmt_time_string+"+00:00",
+                    "dt": gmt_time_string+"+00:00",
+                    "mm": gmt_time_string+"+00:00",
+                    "sre_qt": gmt_time_string+"+00:00",
+                    "sre_pa": gmt_time_string+"+00:00"
+                } 
             try:
                 with open(self.discordBot.last_time_save_file, "w") as file:
                     json.dump(data, file, indent =4)
@@ -289,7 +334,7 @@ class MyBot:
                 return False;
             
         if 'id' in order: # If the order is successful.
-            self.telegramBot.send_message(f"🔥Order successful.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\n Order was placed successfully.")
+            # self.telegramBot.send_message(f"🔥Order successful.\n\nAccount {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\n Order was placed successfully.")
             self.robinhood[account_index].orders.append(order['id'])
             print(f"Account {saved_datas['accounts'][account_index]['account_number']}\nChannel: {channel.upper()}\nTicker: {ticker}\nStrike: {strike_price}\n Order was placed successfully.")
         else : # If the order fails.
